@@ -9,10 +9,12 @@ const TableData = () => {
 	const [rowData, setRowData] = useState([]);
 
 	useEffect(() => {
-		covidData().then(data => {
-			const formattedData = formatData(data);
-			setRowData(formattedData);
-		});
+		covidData()
+			.then(data => {
+				const formattedData = formatData(data);
+				setRowData(formattedData);
+			})
+			.catch(err => errorHappened(err));
 	}, []);
 
 	return (
@@ -35,36 +37,49 @@ const TableData = () => {
 };
 
 const formatData = (data = []) => {
-	const sortData = data.sort((a, b) => b.new_positive - a.new_positive);
+	try {
+		const sortData = data.sort((a, b) => b.new_positive - a.new_positive);
 
-	const mData = sortData.map(d => {
-		const totalConfirmedTillDate = d.new_positive;
-		const totalCasesToday = totalConfirmedTillDate - d.positive;
-		const activeCases = d.new_active;
-		//const activeToday = activeCases - d.active;
-		const recoveredTillNow = d.new_cured;
-		const recoveredToday = recoveredTillNow - d.cured;
-		const deathTillNow = d.new_death;
-		const deathToday = deathTillNow - d.death;
-		const state = d.state_name;
+		const mData = sortData.map(d => {
+			const totalConfirmedTillDate = formatNumber(d.new_positive);
+			const totalCasesToday = formatNumber(d.new_positive - d.positive);
+			const activeCases = formatNumber(d.new_active);
+			const recoveredTillNow = formatNumber(d.new_cured);
+			const recoveredToday = formatNumber(d.new_cured - d.cured);
+			const deathTillNow = formatNumber(d.new_death);
+			const deathToday = formatNumber(d.new_death - d.death);
+			const state = d.state_name || 'India';
 
-		return {
-			state,
-			totalCasesToday,
-			activeCases,
-			totalConfirmedTillDate,
-			//activeToday,
-			recoveredTillNow,
-			recoveredToday,
-			deathTillNow,
-			deathToday,
-		};
-	});
-	console.log(mData);
-	const totalData = mData.shift();
-	console.log(totalData);
+			return {
+				state,
+				totalCasesToday,
+				activeCases,
+				totalConfirmedTillDate,
+				recoveredTillNow,
+				recoveredToday,
+				deathTillNow,
+				deathToday,
+			};
+		});
 
-	return mData;
+		return mData;
+	} catch (err) {
+		errorHappened(err);
+	}
+};
+
+const formatNumber = num => {
+	if (typeof Intl !== undefined && Intl.NumberFormat) {
+		let nf = new Intl.NumberFormat();
+		return nf.format(num);
+	}
+
+	return num;
+};
+
+const errorHappened = err => {
+	alert('Error Happened ');
+	console.log(err);
 };
 
 export default TableData;
