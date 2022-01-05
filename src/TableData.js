@@ -5,14 +5,17 @@ import { AgGridColumn, AgGridReact } from 'ag-grid-react';
 import 'ag-grid-community/dist/styles/ag-grid.css';
 import 'ag-grid-community/dist/styles/ag-theme-alpine.css';
 
-const TableData = () => {
+const TableData = ({ onDataChange }) => {
 	const [rowData, setRowData] = useState([]);
 
 	useEffect(() => {
 		covidData()
 			.then(data => {
-				const formattedData = formatData(data);
-				setRowData(formattedData);
+				const { mData, emitChange } = formatData(data);
+				setRowData(mData);
+				if (emitChange) {
+					onDataChange();
+				}
 			})
 			.catch(err => errorHappened(err));
 	}, []);
@@ -49,6 +52,7 @@ const formatData = (data = []) => {
 			const deathTillNow = formatNumber(d.new_death);
 			const deathToday = formatNumber(d.new_death - d.death);
 			const state = d.state_name || 'India';
+			const total = d.new_positive;
 
 			return {
 				state,
@@ -59,13 +63,28 @@ const formatData = (data = []) => {
 				recoveredToday,
 				deathTillNow,
 				deathToday,
+				total,
 			};
 		});
 
-		return mData;
+		const emitChange = checkChangeInData(mData[0]);
+		return { mData, emitChange };
 	} catch (err) {
 		errorHappened(err);
 	}
+};
+
+const checkChangeInData = (data = {}) => {
+	const cases = typeof data.total === 'string' ? +data.total : 0;
+	const inStorage = localStorage.getItem('last-data');
+	let changed = false;
+
+	if ((inStorage && cases > +inStorage) || !inStorage) {
+		changed = true;
+		localStorage.setItem('last-data', cases);
+	}
+
+	return changed;
 };
 
 const formatNumber = num => {
